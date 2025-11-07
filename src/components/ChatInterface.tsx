@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,24 +20,70 @@ export const ChatInterface = () => {
     },
   ]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
 
-    setMessages([...messages, { role: "user", content: input }]);
+  const loadChatHistory = async () => {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    if (error) {
+      console.error('Error loading chat history:', error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const history = data.map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content
+      }));
+      setMessages([messages[0], ...history]);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      role: "user",
+      content: input,
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInput("");
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Processing your query: "${input}". Analyzing domains, retrieving knowledge, and performing calculations...`,
-        },
-      ]);
-      toast.success("Query processed successfully");
-    }, 1000);
+    try {
+      const { data, error } = await supabase.functions.invoke('cothink-chat', {
+        body: { 
+          message: input,
+          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+        }
+      });
+
+      if (error) throw error;
+
+      const aiMessage: Message = {
+        role: "assistant",
+        content: data.response,
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+      toast.success("CoThink AI analyzed your query across multiple domains");
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      toast.error("Failed to get AI response. Please try again.");
+      // Remove the user message if the AI call failed
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,6 +121,20 @@ export const ChatInterface = () => {
               )}
             </div>
           ))}
+          {isLoading && (
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <Bot className="w-5 h-5 text-primary animate-pulse" />
+              </div>
+              <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-foreground">
+                <div className="flex gap-2">
+                  <span className="animate-bounce">●</span>
+                  <span className="animate-bounce delay-100">●</span>
+                  <span className="animate-bounce delay-200">●</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
       <div className="p-4 border-t border-border/50">
@@ -81,11 +142,17 @@ export const ChatInterface = () => {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
             placeholder="Ask CoThink AI anything..."
             className="flex-1 bg-secondary border-border"
+            disabled={isLoading}
           />
-          <Button onClick={handleSend} size="icon" className="shadow-glow">
+          <Button 
+            onClick={handleSend} 
+            size="icon" 
+            className="shadow-glow"
+            disabled={isLoading}
+          >
             <Send className="w-4 h-4" />
           </Button>
         </div>
