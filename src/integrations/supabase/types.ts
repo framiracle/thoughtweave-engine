@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          id: string
+          last_login: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_login?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_login?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      carolina_knowledge: {
+        Row: {
+          details: string
+          domain: string
+          id: string
+          last_updated: string
+        }
+        Insert: {
+          details: string
+          domain: string
+          id?: string
+          last_updated?: string
+        }
+        Update: {
+          details?: string
+          domain?: string
+          id?: string
+          last_updated?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           calculations: Json | null
@@ -41,6 +80,65 @@ export type Database = {
         }
         Relationships: []
       }
+      interaction_logs: {
+        Row: {
+          ai_response: string
+          id: string
+          sentiment: string | null
+          timestamp: string
+          user_id: string | null
+          user_message: string
+        }
+        Insert: {
+          ai_response: string
+          id?: string
+          sentiment?: string | null
+          timestamp?: string
+          user_id?: string | null
+          user_message: string
+        }
+        Update: {
+          ai_response?: string
+          id?: string
+          sentiment?: string | null
+          timestamp?: string
+          user_id?: string | null
+          user_message?: string
+        }
+        Relationships: []
+      }
+      learning_progress: {
+        Row: {
+          created_at: string
+          id: string
+          source_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_id?: string | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_progress_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memory_entries: {
         Row: {
           content: string
@@ -65,6 +163,51 @@ export type Database = {
           id?: string
           timestamp?: string
           type?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      sources: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          type: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          type?: string
+          url?: string | null
         }
         Relationships: []
       }

@@ -16,7 +16,7 @@ export const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hello! I'm CoThink AI, a multi-domain reasoning system. I can help you with complex problems spanning mathematics, physics, computer science, and more. What would you like to explore?",
+      content: "Hello! I'm Carolina Olivia, your empathetic AI companion. I have expertise across programming, ethical hacking, emotions, literature, culture, and many scientific domains. I'm here to help you with genuine understanding and care. What would you like to explore together?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -60,11 +60,16 @@ export const ChatInterface = () => {
     setIsLoading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { data, error } = await supabase.functions.invoke('cothink-chat', {
         body: { 
           message: input,
           history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
-        }
+        },
+        headers: session ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : {}
       });
 
       if (error) throw error;
@@ -75,10 +80,10 @@ export const ChatInterface = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      toast.success("CoThink AI analyzed your query across multiple domains");
+      toast.success("Carolina understood and responded thoughtfully");
     } catch (error) {
       console.error('Error calling AI:', error);
-      toast.error("Failed to get AI response. Please try again.");
+      toast.error("Failed to get response. Please try again.");
       // Remove the user message if the AI call failed
       setMessages(prev => prev.slice(0, -1));
     } finally {
@@ -89,7 +94,7 @@ export const ChatInterface = () => {
   return (
     <Card className="flex flex-col h-full bg-card/50 backdrop-blur border-border/50">
       <div className="p-4 border-b border-border/50">
-        <h2 className="text-xl font-semibold text-foreground">CoThink AI Interface</h2>
+        <h2 className="text-xl font-semibold text-foreground">Chat with Carolina</h2>
       </div>
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
@@ -143,7 +148,7 @@ export const ChatInterface = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
-            placeholder="Ask CoThink AI anything..."
+            placeholder="Share your thoughts with Carolina..."
             className="flex-1 bg-secondary border-border"
             disabled={isLoading}
           />

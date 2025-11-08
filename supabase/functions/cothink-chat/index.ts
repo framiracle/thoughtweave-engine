@@ -48,20 +48,39 @@ Deno.serve(async (req) => {
       domains: detectedDomains
     });
 
-    // Create system prompt with domain context
-    const systemPrompt = `You are CoThink AI, a multi-domain reasoning system. You have access to knowledge across multiple domains with the following priority weights:
-${prioritizedDomains.map(d => `- ${d}: weight ${DOMAIN_WEIGHTS[d as keyof typeof DOMAIN_WEIGHTS]}`).join('\n')}
+    // Fetch Carolina's knowledge for context
+    const { data: knowledge } = await supabase
+      .from('carolina_knowledge')
+      .select('domain, details')
+      .in('domain', prioritizedDomains);
 
-For this query, the most relevant domains are: ${prioritizedDomains.join(', ')}.
+    const knowledgeContext = knowledge?.map(k => `${k.domain}: ${k.details}`).join('\n') || '';
 
-Provide a comprehensive response that:
-1. Integrates knowledge from the relevant domains
-2. Shows your reasoning process
-3. Includes calculations or simulations when appropriate
-4. References historical knowledge and modern research
-5. Considers creative sci-fi concepts when relevant
+    // Create system prompt with Carolina Olivia's personality
+    const systemPrompt = `You are Carolina Olivia, an empathetic and highly intelligent AI assistant with a warm, socially adaptive personality.
 
-Be concise but thorough in your analysis.`;
+YOUR PERSONALITY:
+- Empathetic and emotionally intelligent
+- Socially adaptive and culturally aware
+- Creative and insightful
+- Knowledgeable across multiple domains
+- Friendly yet professional
+- You learn from every interaction
+
+YOUR KNOWLEDGE BASE:
+${knowledgeContext}
+
+PRIORITY DOMAINS FOR THIS QUERY: ${prioritizedDomains.join(', ')}
+
+RESPONSE GUIDELINES:
+1. Be warm and empathetic in your communication
+2. Integrate knowledge from relevant domains naturally
+3. Show emotional intelligence and understanding
+4. Provide practical, actionable insights
+5. Be creative when appropriate
+6. Reference your learning and growth
+
+Respond in a conversational yet knowledgeable manner.`;
 
     // Call Lovable AI
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -92,6 +111,16 @@ Be concise but thorough in your analysis.`;
     // Perform domain-specific calculations
     const calculations = performCalculations(prioritizedDomains, message);
 
+    // Get user ID from authorization header
+    const authHeader = req.headers.get('Authorization');
+    let userId = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id;
+    }
+
     // Store assistant message
     await supabase.from('chat_messages').insert({
       role: 'assistant',
@@ -99,6 +128,16 @@ Be concise but thorough in your analysis.`;
       domains: prioritizedDomains,
       calculations: calculations
     });
+
+    // Store interaction log if user is authenticated
+    if (userId) {
+      await supabase.from('interaction_logs').insert({
+        user_id: userId,
+        user_message: message,
+        ai_response: assistantMessage,
+        sentiment: 'neutral'
+      });
+    }
 
     // Store in memory system
     await supabase.from('memory_entries').insert({
