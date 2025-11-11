@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, Plus, Trash2, LogOut } from "lucide-react";
+import { Shield, Plus, Trash2, LogOut, Brain, TrendingUp, Zap, FileText } from "lucide-react";
+import PersonalityTraits from "@/components/PersonalityTraits";
+import LearningProgress from "@/components/LearningProgress";
 
 interface KnowledgeItem {
   id: string;
@@ -21,7 +23,15 @@ interface InteractionLog {
   user_message: string;
   ai_response: string;
   timestamp: string;
-  sentiment: string;
+  sentiment: string | null;
+  emotion?: string | null;
+}
+
+interface Stats {
+  totalKnowledge: number;
+  totalLogs: number;
+  totalLearningSources: number;
+  totalLearningLogs: number;
 }
 
 export default function Admin() {
@@ -32,6 +42,12 @@ export default function Admin() {
   const [logs, setLogs] = useState<InteractionLog[]>([]);
   const [newDomain, setNewDomain] = useState("");
   const [newDetails, setNewDetails] = useState("");
+  const [stats, setStats] = useState<Stats>({
+    totalKnowledge: 0,
+    totalLogs: 0,
+    totalLearningSources: 0,
+    totalLearningLogs: 0
+  });
 
   useEffect(() => {
     checkAdminStatus();
@@ -69,21 +85,37 @@ export default function Admin() {
 
   const loadData = async () => {
     // Load knowledge
-    const { data: knowledgeData } = await supabase
+    const { data: knowledgeData, count: knowledgeCount } = await supabase
       .from('carolina_knowledge')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('domain');
     
     if (knowledgeData) setKnowledge(knowledgeData);
 
     // Load recent logs
-    const { data: logsData } = await supabase
+    const { data: logsData, count: logsCount } = await supabase
       .from('interaction_logs')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('timestamp', { ascending: false })
       .limit(50);
     
-    if (logsData) setLogs(logsData);
+    if (logsData) setLogs(logsData as InteractionLog[]);
+
+    // Load stats
+    const { count: learningSourcesCount } = await supabase
+      .from('knowledge_sources' as any)
+      .select('*', { count: 'exact', head: true });
+
+    const { count: learningLogsCount } = await supabase
+      .from('continuous_learning_log' as any)
+      .select('*', { count: 'exact', head: true });
+
+    setStats({
+      totalKnowledge: knowledgeCount || 0,
+      totalLogs: logsCount || 0,
+      totalLearningSources: learningSourcesCount || 0,
+      totalLearningLogs: learningLogsCount || 0
+    });
   };
 
   const addKnowledge = async () => {
@@ -141,7 +173,10 @@ export default function Admin() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Shield className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Carolina Olivia - Multi-Phase AI System</p>
+            </div>
           </div>
           <Button onClick={handleLogout} variant="outline">
             <LogOut className="w-4 h-4 mr-2" />
@@ -149,9 +184,51 @@ export default function Admin() {
           </Button>
         </div>
 
+        {/* Stats Overview */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Card className="p-6 bg-card/50 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <Brain className="w-8 h-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Knowledge Entries</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalKnowledge}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-6 bg-card/50 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <FileText className="w-8 h-8 text-secondary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Interaction Logs</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalLogs}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-6 bg-card/50 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-8 h-8 text-accent" />
+              <div>
+                <p className="text-sm text-muted-foreground">Learning Sources</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalLearningSources}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-6 bg-card/50 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <Zap className="w-8 h-8 text-emerald-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Learning Actions</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalLearningLogs}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
         <Tabs defaultValue="knowledge" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+            <TabsTrigger value="personality">Personality Traits</TabsTrigger>
+            <TabsTrigger value="learning">Learning Progress</TabsTrigger>
             <TabsTrigger value="logs">Interaction Logs</TabsTrigger>
           </TabsList>
 
@@ -203,6 +280,14 @@ export default function Admin() {
             </div>
           </TabsContent>
 
+          <TabsContent value="personality">
+            <PersonalityTraits />
+          </TabsContent>
+
+          <TabsContent value="learning">
+            <LearningProgress />
+          </TabsContent>
+
           <TabsContent value="logs">
             <div className="space-y-4">
               {logs.map((log) => (
@@ -216,9 +301,21 @@ export default function Admin() {
                       <span className="text-xs text-secondary font-semibold">Carolina:</span>
                       <p className="text-sm text-muted-foreground">{log.ai_response}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(log.timestamp).toLocaleString()} | Sentiment: {log.sentiment}
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{new Date(log.timestamp).toLocaleString()}</span>
+                      {log.sentiment && (
+                        <>
+                          <span>•</span>
+                          <span className="capitalize">Sentiment: {log.sentiment}</span>
+                        </>
+                      )}
+                      {log.emotion && (
+                        <>
+                          <span>•</span>
+                          <span className="capitalize">Emotion: {log.emotion}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </Card>
               ))}

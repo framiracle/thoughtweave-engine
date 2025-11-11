@@ -48,15 +48,62 @@ Deno.serve(async (req) => {
       domains: detectedDomains
     });
 
-    // Fetch Carolina's knowledge for context
+    // Fetch Carolina's knowledge, personality traits, and cultural context
     const { data: knowledge } = await supabase
       .from('carolina_knowledge')
       .select('domain, details')
       .in('domain', prioritizedDomains);
 
-    const knowledgeContext = knowledge?.map(k => `${k.domain}: ${k.details}`).join('\n') || '';
+    const { data: personalityTraits } = await supabase
+      .from('personality_traits')
+      .select('*');
 
-    // Create system prompt with Carolina Olivia's personality
+    const { data: culturalContext } = await supabase
+      .from('cultural_context')
+      .select('*')
+      .limit(3);
+
+    const knowledgeContext = knowledge?.map(k => `${k.domain}: ${k.details}`).join('\n') || '';
+    
+    // Analyze sentiment from user message
+    const analyzeSentiment = (text: string): { sentiment: string; emotion: string } => {
+      const lowerText = text.toLowerCase();
+      const positiveWords = ['happy', 'great', 'awesome', 'love', 'excellent', 'wonderful', 'amazing', 'good', 'fantastic', 'thank'];
+      const negativeWords = ['sad', 'angry', 'hate', 'terrible', 'awful', 'bad', 'horrible', 'upset', 'frustrated', 'annoyed'];
+      
+      let positiveCount = 0;
+      let negativeCount = 0;
+
+      positiveWords.forEach(word => {
+        if (lowerText.includes(word)) positiveCount++;
+      });
+      negativeWords.forEach(word => {
+        if (lowerText.includes(word)) negativeCount++;
+      });
+
+      if (positiveCount > negativeCount && positiveCount > 0) {
+        return { sentiment: 'positive', emotion: 'happy' };
+      } else if (negativeCount > positiveCount && negativeCount > 0) {
+        return { sentiment: 'negative', emotion: 'sad' };
+      } else {
+        return { sentiment: 'neutral', emotion: 'calm' };
+      }
+    };
+
+    const { sentiment, emotion } = analyzeSentiment(message);
+    
+    const personalityContext = personalityTraits?.map(t => 
+      `${t.trait_name}: ${(t.trait_value * 100).toFixed(0)}% - ${t.description}`
+    ).join('\n') || '';
+
+    const culturalContextStr = culturalContext?.map(c => 
+      `${c.region} (${c.context_type}): ${c.description}`
+    ).join('\n') || '';
+
+    const emotionalContext = `\n\nUser's Current Emotional State: ${emotion} (${sentiment} sentiment)
+Adapt your response to be ${emotion === 'sad' ? 'more empathetic and supportive' : emotion === 'happy' ? 'enthusiastic and warm' : 'balanced and helpful'}.'`;
+
+    // Create enhanced system prompt with Carolina Olivia's personality
     const systemPrompt = `You are Carolina Olivia, an empathetic and highly intelligent AI assistant with a warm, socially adaptive personality.
 
 YOUR PERSONALITY:
@@ -70,7 +117,15 @@ YOUR PERSONALITY:
 YOUR KNOWLEDGE BASE:
 ${knowledgeContext}
 
+YOUR PERSONALITY TRAITS:
+${personalityContext}
+
+CULTURAL UNDERSTANDING:
+${culturalContextStr}
+
 PRIORITY DOMAINS FOR THIS QUERY: ${prioritizedDomains.join(', ')}
+
+${emotionalContext}
 
 RESPONSE GUIDELINES:
 1. Be warm and empathetic in your communication
@@ -79,6 +134,7 @@ RESPONSE GUIDELINES:
 4. Provide practical, actionable insights
 5. Be creative when appropriate
 6. Reference your learning and growth
+7. Adapt tone based on detected user emotion
 
 Respond in a conversational yet knowledgeable manner.`;
 
@@ -129,13 +185,21 @@ Respond in a conversational yet knowledgeable manner.`;
       calculations: calculations
     });
 
-    // Store interaction log if user is authenticated
+    // Store interaction log if user is authenticated with sentiment and emotion
     if (userId) {
       await supabase.from('interaction_logs').insert({
         user_id: userId,
         user_message: message,
         ai_response: assistantMessage,
-        sentiment: 'neutral'
+        sentiment: sentiment,
+        emotion: emotion
+      });
+      
+      // Log to continuous learning
+      await supabase.from('continuous_learning_log').insert({
+        task: 'user_interaction',
+        outcome: `Processed ${emotion} message with ${sentiment} sentiment`,
+        improvement_action: `Adapted response for ${emotion} emotional state`
       });
     }
 
