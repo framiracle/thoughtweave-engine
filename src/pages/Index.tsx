@@ -6,7 +6,7 @@ import { MemoryPanel } from "@/components/MemoryPanel";
 import { DomainWeights } from "@/components/DomainWeights";
 import { ReasoningProcess } from "@/components/ReasoningProcess";
 import { ActionButtons } from "@/components/ActionButtons";
-import { Brain, LogOut, Shield, Settings, Home, Battery, BookOpen, FlaskConical, Menu } from "lucide-react";
+import { Brain, LogOut, Shield, Settings, Home, Battery, BookOpen, FlaskConical, Menu, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -136,6 +136,10 @@ const Index = () => {
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/knowledge-lab")}>
                 <BookOpen className="w-5 h-5" />
                 Knowledge View
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/trends")}>
+                <TrendingUp className="w-5 h-5" />
+                Trends & Predictions
               </Button>
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <Battery className="w-5 h-5" />

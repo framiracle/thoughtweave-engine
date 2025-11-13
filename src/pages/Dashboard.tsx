@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Battery, TrendingUp, Activity, Settings, FlaskConical, Link2, FileText, Home } from "lucide-react";
+import { Brain, Battery, TrendingUp, Activity, Settings, FlaskConical, FileText, Home } from "lucide-react";
 import { toast } from "sonner";
 
 interface AIGrowth {
@@ -178,14 +178,14 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer">
+          <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/trends")}>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/10 flex items-center justify-center">
-                <Link2 className="w-6 h-6 text-purple-500" />
+                <TrendingUp className="w-6 h-6 text-purple-500" />
               </div>
               <div>
                 <div className="text-2xl font-bold text-foreground">Active</div>
-                <div className="text-xs text-muted-foreground">Link</div>
+                <div className="text-xs text-muted-foreground">Trends</div>
               </div>
             </div>
           </Card>

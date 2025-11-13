@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import KnowledgeLab from "./pages/KnowledgeLab";
+import TrendDashboard from "./pages/TrendDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/knowledge-lab" element={<KnowledgeLab />} />
+          <Route path="/trends" element={<TrendDashboard />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

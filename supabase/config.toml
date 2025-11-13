@@ -17,3 +17,12 @@ verify_jwt = true
 
 [functions.carolina-interlink]
 verify_jwt = true
+
+[functions.carolina-harvest]
+verify_jwt = false
+
+[functions.carolina-detect-trends]
+verify_jwt = false
+
+[functions.carolina-generate-predictive]
+verify_jwt = false

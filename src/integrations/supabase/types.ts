@@ -215,6 +215,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cultural_context: {
+        Row: {
+          context_type: string
+          created_at: string | null
+          description: string
+          id: string
+          relevance_score: number | null
+          source: string | null
+        }
+        Insert: {
+          context_type: string
+          created_at?: string | null
+          description: string
+          id?: string
+          relevance_score?: number | null
+          source?: string | null
+        }
+        Update: {
+          context_type?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          relevance_score?: number | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       interaction_logs: {
         Row: {
           ai_response: string
@@ -239,6 +266,45 @@ export type Database = {
           timestamp?: string
           user_id?: string | null
           user_message?: string
+        }
+        Relationships: []
+      }
+      knowledge_sources: {
+        Row: {
+          content: string
+          created_at: string | null
+          emotion: string | null
+          engagement_score: number | null
+          id: string
+          sentiment: string | null
+          source_type: string
+          title: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          emotion?: string | null
+          engagement_score?: number | null
+          id?: string
+          sentiment?: string | null
+          source_type: string
+          title: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          emotion?: string | null
+          engagement_score?: number | null
+          id?: string
+          sentiment?: string | null
+          source_type?: string
+          title?: string
+          updated_at?: string | null
+          url?: string | null
         }
         Relationships: []
       }
@@ -331,6 +397,36 @@ export type Database = {
         }
         Relationships: []
       }
+      predictive_content_log: {
+        Row: {
+          content: string
+          engagement_metrics: Json | null
+          id: string
+          modality: string
+          predicted_trend: string | null
+          timestamp: string | null
+          user_feedback: number | null
+        }
+        Insert: {
+          content: string
+          engagement_metrics?: Json | null
+          id?: string
+          modality: string
+          predicted_trend?: string | null
+          timestamp?: string | null
+          user_feedback?: number | null
+        }
+        Update: {
+          content?: string
+          engagement_metrics?: Json | null
+          id?: string
+          modality?: string
+          predicted_trend?: string | null
+          timestamp?: string | null
+          user_feedback?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -408,6 +504,39 @@ export type Database = {
           id?: string
           type?: string
           url?: string | null
+        }
+        Relationships: []
+      }
+      trend_log: {
+        Row: {
+          frequency: number | null
+          id: string
+          novelty_score: number | null
+          relevance_score: number | null
+          score: number
+          source: string
+          timestamp: string | null
+          trend_topic: string
+        }
+        Insert: {
+          frequency?: number | null
+          id?: string
+          novelty_score?: number | null
+          relevance_score?: number | null
+          score: number
+          source: string
+          timestamp?: string | null
+          trend_topic: string
+        }
+        Update: {
+          frequency?: number | null
+          id?: string
+          novelty_score?: number | null
+          relevance_score?: number | null
+          score?: number
+          source?: string
+          timestamp?: string | null
+          trend_topic?: string
         }
         Relationships: []
       }
