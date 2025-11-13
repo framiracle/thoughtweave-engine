@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, Plus, Trash2, LogOut, Brain, TrendingUp, Zap, FileText } from "lucide-react";
+import { Shield, Plus, Trash2, LogOut, Brain, TrendingUp, Zap, FileText, FlaskConical, Battery } from "lucide-react";
 import PersonalityTraits from "@/components/PersonalityTraits";
 import LearningProgress from "@/components/LearningProgress";
+import KnowledgeBattery from "@/components/KnowledgeBattery";
+import LabEnvironment from "@/components/LabEnvironment";
+import MemoryManager from "@/components/MemoryManager";
 
 interface KnowledgeItem {
   id: string;
@@ -32,6 +35,22 @@ interface Stats {
   totalLogs: number;
   totalLearningSources: number;
   totalLearningLogs: number;
+  labExperiments: number;
+  totalMemories: number;
+}
+
+interface AIGrowth {
+  knowledge_level: number;
+  evolution_tier: string;
+  learning_rate: number;
+}
+
+interface LabLog {
+  id: string;
+  experiment_name: string;
+  result_summary: string;
+  success: boolean;
+  timestamp: string;
 }
 
 export default function Admin() {
@@ -46,8 +65,16 @@ export default function Admin() {
     totalKnowledge: 0,
     totalLogs: 0,
     totalLearningSources: 0,
-    totalLearningLogs: 0
+    totalLearningLogs: 0,
+    labExperiments: 0,
+    totalMemories: 0
   });
+  const [aiGrowth, setAiGrowth] = useState<AIGrowth>({
+    knowledge_level: 12,
+    evolution_tier: 'Bronze',
+    learning_rate: 0.1
+  });
+  const [labLogs, setLabLogs] = useState<LabLog[]>([]);
 
   useEffect(() => {
     checkAdminStatus();
@@ -62,13 +89,14 @@ export default function Admin() {
         return;
       }
 
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('*')
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
         .eq('user_id', user.id)
+        .eq('role', 'admin')
         .single();
 
-      if (!adminData) {
+      if (!roleData) {
         toast.error("Access denied. Admin privileges required.");
         navigate("/");
         return;
@@ -76,6 +104,8 @@ export default function Admin() {
 
       setIsAdmin(true);
       loadData();
+      loadAIGrowth();
+      loadLabLogs();
     } catch (error) {
       navigate("/");
     } finally {
@@ -110,12 +140,70 @@ export default function Admin() {
       .from('continuous_learning_log' as any)
       .select('*', { count: 'exact', head: true });
 
+    const { count: labExperimentsCount } = await supabase
+      .from('ai_lab_logs')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: totalMemoriesCount } = await supabase
+      .from('memory_log')
+      .select('*', { count: 'exact', head: true });
+
     setStats({
       totalKnowledge: knowledgeCount || 0,
       totalLogs: logsCount || 0,
       totalLearningSources: learningSourcesCount || 0,
-      totalLearningLogs: learningLogsCount || 0
+      totalLearningLogs: learningLogsCount || 0,
+      labExperiments: labExperimentsCount || 0,
+      totalMemories: totalMemoriesCount || 0
     });
+  };
+
+  const loadAIGrowth = async () => {
+    const { data } = await supabase
+      .from('ai_growth')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data) {
+      setAiGrowth({
+        knowledge_level: data.knowledge_level,
+        evolution_tier: data.evolution_tier,
+        learning_rate: data.learning_rate
+      });
+    }
+  };
+
+  const loadLabLogs = async () => {
+    const { data } = await supabase
+      .from('ai_lab_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(20);
+
+    if (data) {
+      setLabLogs(data as LabLog[]);
+    }
+  };
+
+  const boostLearning = async (gain: number = 5) => {
+    const { data, error } = await supabase.functions.invoke('carolina-admin', {
+      body: { 
+        command: 'boost_growth',
+        data: { gain }
+      }
+    });
+
+    if (error) {
+      toast.error("Failed to boost learning");
+      return;
+    }
+
+    if (data?.success) {
+      toast.success(`Knowledge boosted by ${gain}%!`);
+      loadAIGrowth();
+    }
   };
 
   const addKnowledge = async () => {
@@ -206,27 +294,46 @@ export default function Admin() {
           </Card>
           <Card className="p-6 bg-card/50 backdrop-blur">
             <div className="flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 text-accent" />
+              <FlaskConical className="w-8 h-8 text-purple-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Learning Sources</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalLearningSources}</p>
+                <p className="text-sm text-muted-foreground">Lab Experiments</p>
+                <p className="text-2xl font-bold text-foreground">{stats.labExperiments}</p>
               </div>
             </div>
           </Card>
           <Card className="p-6 bg-card/50 backdrop-blur">
             <div className="flex items-center gap-3">
-              <Zap className="w-8 h-8 text-emerald-500" />
+              <Battery className="w-8 h-8 text-emerald-500" />
               <div>
-                <p className="text-sm text-muted-foreground">Learning Actions</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalLearningLogs}</p>
+                <p className="text-sm text-muted-foreground">Stored Memories</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalMemories}</p>
               </div>
             </div>
           </Card>
         </div>
 
+        {/* Knowledge Battery */}
+        <div className="mb-8">
+          <KnowledgeBattery 
+            level={aiGrowth.knowledge_level} 
+            tier={aiGrowth.evolution_tier}
+            learningRate={aiGrowth.learning_rate}
+          />
+          <div className="flex gap-3 mt-4">
+            <Button onClick={() => boostLearning(1)} variant="outline">+1%</Button>
+            <Button onClick={() => boostLearning(5)} variant="outline">+5%</Button>
+            <Button onClick={() => boostLearning(10)} className="bg-gradient-to-r from-primary to-secondary">
+              <Zap className="w-4 h-4 mr-2" />
+              +10% Boost
+            </Button>
+          </div>
+        </div>
+
         <Tabs defaultValue="knowledge" className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap h-auto">
             <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+            <TabsTrigger value="battery">Growth & Lab</TabsTrigger>
+            <TabsTrigger value="memory">Memory Manager</TabsTrigger>
             <TabsTrigger value="personality">Personality Traits</TabsTrigger>
             <TabsTrigger value="learning">Learning Progress</TabsTrigger>
             <TabsTrigger value="logs">Interaction Logs</TabsTrigger>
@@ -278,6 +385,16 @@ export default function Admin() {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="battery">
+            <div className="grid gap-6">
+              <LabEnvironment logs={labLogs} onRefresh={loadLabLogs} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="memory">
+            <MemoryManager />
           </TabsContent>
 
           <TabsContent value="personality">

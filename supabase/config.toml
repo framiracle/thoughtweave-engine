@@ -1,1 +1,19 @@
 project_id = "rarhbpvtxyqgqvrtrukw"
+
+[functions.cothink-chat]
+verify_jwt = false
+
+[functions.carolina-analyze]
+verify_jwt = false
+
+[functions.carolina-learn]
+verify_jwt = false
+
+[functions.carolina-status]
+verify_jwt = false
+
+[functions.carolina-admin]
+verify_jwt = true
+
+[functions.carolina-interlink]
+verify_jwt = true

@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          id: string
+          performed_by: string | null
+          result: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          performed_by?: string | null
+          result?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          performed_by?: string | null
+          result?: string | null
+          timestamp?: string | null
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           id: string
@@ -29,6 +53,84 @@ export type Database = {
           id?: string
           last_login?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      ai_growth: {
+        Row: {
+          created_at: string | null
+          evolution_tier: string | null
+          id: string
+          knowledge_level: number | null
+          last_update: string | null
+          learning_rate: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          evolution_tier?: string | null
+          id?: string
+          knowledge_level?: number | null
+          last_update?: string | null
+          learning_rate?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          evolution_tier?: string | null
+          id?: string
+          knowledge_level?: number | null
+          last_update?: string | null
+          learning_rate?: number | null
+        }
+        Relationships: []
+      }
+      ai_lab_logs: {
+        Row: {
+          experiment_name: string
+          id: string
+          result_summary: string | null
+          success: boolean | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          experiment_name: string
+          id?: string
+          result_summary?: string | null
+          success?: boolean | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          experiment_name?: string
+          id?: string
+          result_summary?: string | null
+          success?: boolean | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_link_log: {
+        Row: {
+          data: Json | null
+          id: string
+          receiver: string
+          sender: string
+          timestamp: string | null
+        }
+        Insert: {
+          data?: Json | null
+          id?: string
+          receiver: string
+          sender: string
+          timestamp?: string | null
+        }
+        Update: {
+          data?: Json | null
+          id?: string
+          receiver?: string
+          sender?: string
+          timestamp?: string | null
         }
         Relationships: []
       }
@@ -50,6 +152,39 @@ export type Database = {
           domain?: string
           id?: string
           last_updated?: string
+        }
+        Relationships: []
+      }
+      carolina_status: {
+        Row: {
+          ai_mood: string | null
+          battery_level: number | null
+          created_at: string | null
+          health_status: string | null
+          id: string
+          last_activity: string | null
+          learning_mode: string | null
+          tasks_completed: number | null
+        }
+        Insert: {
+          ai_mood?: string | null
+          battery_level?: number | null
+          created_at?: string | null
+          health_status?: string | null
+          id?: string
+          last_activity?: string | null
+          learning_mode?: string | null
+          tasks_completed?: number | null
+        }
+        Update: {
+          ai_mood?: string | null
+          battery_level?: number | null
+          created_at?: string | null
+          health_status?: string | null
+          id?: string
+          last_activity?: string | null
+          learning_mode?: string | null
+          tasks_completed?: number | null
         }
         Relationships: []
       }
@@ -166,6 +301,36 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_log: {
+        Row: {
+          content: string
+          created_at: string | null
+          emoji: string | null
+          id: string
+          summary: string | null
+          title: string
+          verified: boolean | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          emoji?: string | null
+          id?: string
+          summary?: string | null
+          title: string
+          verified?: boolean | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          emoji?: string | null
+          id?: string
+          summary?: string | null
+          title?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -186,6 +351,41 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      reflection_log: {
+        Row: {
+          correction: string | null
+          created_at: string | null
+          feedback: string
+          id: string
+          memory_id: string | null
+          reflection_result: string | null
+        }
+        Insert: {
+          correction?: string | null
+          created_at?: string | null
+          feedback: string
+          id?: string
+          memory_id?: string | null
+          reflection_result?: string | null
+        }
+        Update: {
+          correction?: string | null
+          created_at?: string | null
+          feedback?: string
+          id?: string
+          memory_id?: string | null
+          reflection_result?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reflection_log_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "memory_log"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sources: {
         Row: {
@@ -211,15 +411,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -346,6 +573,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
