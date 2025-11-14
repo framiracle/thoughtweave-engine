@@ -133,21 +133,21 @@ const Index = () => {
                 <Brain className="w-5 h-5" />
                 Dashboard
               </Button>
+              <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/unicorn")}>
+                <FlaskConical className="w-5 h-5" />
+                Unicorn AI Hub
+              </Button>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/knowledge-lab")}>
                 <BookOpen className="w-5 h-5" />
-                Knowledge View
+                Knowledge Lab
               </Button>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/trends")}>
                 <TrendingUp className="w-5 h-5" />
                 Trends & Predictions
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-2">
+              <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/dashboard")}>
                 <Battery className="w-5 h-5" />
                 Brain Status
-              </Button>
-              <Button variant="ghost" className="w-full justify-start gap-2">
-                <FlaskConical className="w-5 h-5" />
-                Labs
               </Button>
             </div>
           </SheetContent>
