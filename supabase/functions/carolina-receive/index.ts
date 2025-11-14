@@ -1,5 +1,5 @@
-// 🔐 Carolina → Unicorn Interlink
-// Edge Function (Supabase) – Sends encrypted packets
+// 🦄 Receive Unicorn AI Feedback
+// Validates admin law → merges back into Carolina's brain
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -31,64 +31,58 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    const data = await req.json();
     const adminHash = await getAdminHash();
 
-    // 1️⃣ Build secure packet
-    const packet = {
-      sender: "Carolina",
-      type: body.type || "knowledge_update",
-      topic: body.topic || "general",
-      content: body.content || "",
-      timestamp: new Date().toISOString(),
-      auth: adminHash, // encrypted admin law
-    };
+    // 1️⃣ Validate Admin Law
+    if (data.auth !== adminHash) {
+      console.warn("Admin Law validation failed - unauthorized interlink attempt");
+      return new Response(
+        JSON.stringify({
+          status: "blocked",
+          reason: "Admin Law validation failed",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 2️⃣ Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 3️⃣ Log in Supabase table
+    // 3️⃣ Log feedback into database
     await supabase
       .from('ai_link_log')
       .insert({
-        sender: "Carolina",
-        receiver: "Unicorn",
-        data: packet,
+        sender: "Unicorn",
+        receiver: "Carolina",
+        data: data,
       });
 
-    // 4️⃣ Send packet to Unicorn API (if URL is configured)
-    const unicornUrl = Deno.env.get('UNICORN_API_URL');
-    let unicornReply = { status: "logged", note: "Unicorn URL not configured" };
+    // 4️⃣ Update Carolina's memory
+    await supabase
+      .from('carolina_memory')
+      .insert({
+        message: "[UNICORN SYNC]",
+        response: data.insight || data.content || "No insight provided",
+        emotion: "sync",
+        sentiment: "positive",
+      });
 
-    if (unicornUrl) {
-      try {
-        const unicornResponse = await fetch(`${unicornUrl}/unicorn_receive`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(packet),
-        });
-        unicornReply = await unicornResponse.json();
-      } catch (err) {
-        console.warn("Unicorn API unreachable:", err);
-        unicornReply = { status: "unreachable", error: err.message };
-      }
-    }
+    console.log("🟦 Sync with Unicorn complete. Admin Law validated.");
 
-    console.log(`Carolina sent ${packet.type} to Unicorn: ${packet.topic}`);
-
+    // 5️⃣ Response back to Unicorn (success)
     return new Response(
       JSON.stringify({
         status: "success",
-        message: "Packet delivered and logged",
-        unicornReply: unicornReply,
-        packet: packet,
+        message: "🟦 Sync with Unicorn complete. New shared insight integrated successfully. Admin Law validated. Cognitive synergy level increased.",
+        timestamp: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Error in carolina-interlink:", err);
+    console.error("Error in carolina-receive:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
