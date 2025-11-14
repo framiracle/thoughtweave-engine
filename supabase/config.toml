@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.carolina-interlink]
 verify_jwt = true
 
+[functions.carolina-receive]
+verify_jwt = false
+
 [functions.carolina-harvest]
 verify_jwt = false
 
