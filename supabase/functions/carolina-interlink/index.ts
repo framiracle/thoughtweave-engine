@@ -72,7 +72,7 @@ serve(async (req) => {
         unicornReply = await unicornResponse.json();
       } catch (err) {
         console.warn("Unicorn API unreachable:", err);
-        unicornReply = { status: "unreachable", error: err.message };
+        unicornReply = { status: "unreachable", note: "Communication failed" };
       }
     }
 
