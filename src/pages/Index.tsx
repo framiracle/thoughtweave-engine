@@ -133,10 +133,6 @@ const Index = () => {
                 <Brain className="w-5 h-5" />
                 Dashboard
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/unicorn")}>
-                <FlaskConical className="w-5 h-5" />
-                Unicorn AI Hub
-              </Button>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => navigate("/knowledge-lab")}>
                 <BookOpen className="w-5 h-5" />
                 Knowledge Lab

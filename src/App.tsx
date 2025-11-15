@@ -7,11 +7,11 @@ import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import AdminConsole from "./pages/AdminConsole";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import KnowledgeLab from "./pages/KnowledgeLab";
 import TrendDashboard from "./pages/TrendDashboard";
-import Unicorn from "./pages/Unicorn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,8 +29,9 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/knowledge-lab" element={<KnowledgeLab />} />
           <Route path="/trends" element={<TrendDashboard />} />
-          <Route path="/unicorn" element={<Unicorn />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin-console" element={<AdminConsole />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -29,3 +29,27 @@ verify_jwt = false
 
 [functions.carolina-generate-predictive]
 verify_jwt = false
+
+[functions.admin-get-settings]
+verify_jwt = false
+
+[functions.admin-save-settings]
+verify_jwt = false
+
+[functions.admin-get-knowledge]
+verify_jwt = false
+
+[functions.admin-save-knowledge]
+verify_jwt = false
+
+[functions.admin-get-learning]
+verify_jwt = false
+
+[functions.admin-save-learning]
+verify_jwt = false
+
+[functions.admin-get-chats]
+verify_jwt = false
+
+[functions.admin-create-chat]
+verify_jwt = false
