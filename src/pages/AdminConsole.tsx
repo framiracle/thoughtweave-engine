@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Shield, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { User } from "@supabase/supabase-js";
 
 const AdminConsole = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState("dark");
   const [settings, setSettings] = useState({
     chat_style: "empathetic",
@@ -26,15 +30,72 @@ const AdminConsole = () => {
   const [chatTitle, setChatTitle] = useState("");
   const [chatBody, setChatBody] = useState("");
 
+  // Check authentication and admin status
   useEffect(() => {
-    loadSettings();
-    loadKnowledge();
-    loadLearning();
-    loadChats();
-  }, []);
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          navigate("/auth");
+          return;
+        }
+
+        setUser(session.user);
+
+        // Check admin role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .eq('role', 'admin')
+          .single();
+
+        if (!roleData) {
+          toast({ title: "Access denied", description: "Admin privileges required", variant: "destructive" });
+          navigate("/");
+          return;
+        }
+
+        setIsAdmin(true);
+        setLoading(false);
+
+        // Load data after auth verification
+        loadSettings();
+        loadKnowledge();
+        loadLearning();
+        loadChats();
+      } catch (error) {
+        console.error("Auth check error:", error);
+        navigate("/auth");
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
   const loadSettings = async () => {
     const { data, error } = await supabase.functions.invoke("admin-get-settings");
+    if (error) {
+      if (error.message.includes("401") || error.message.includes("403")) {
+        toast({ title: "Session expired", description: "Please log in again", variant: "destructive" });
+        navigate("/auth");
+        return;
+      }
+    }
     if (!error && data) {
       setSettings(data);
       setTheme(data.theme || "dark");
@@ -122,6 +183,21 @@ const AdminConsole = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Verifying admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen gap-4 p-5">
@@ -129,12 +205,22 @@ const AdminConsole = () => {
         <aside className="w-80 bg-card rounded-xl p-4 shadow-lg overflow-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold">Carolina Olivia — Admin</h2>
-              <div className="text-xs text-muted-foreground">Private AI · Admin: <strong>Franize</strong></div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                <h2 className="text-lg font-semibold">Admin Console</h2>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {user?.email}
+              </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Settings */}
