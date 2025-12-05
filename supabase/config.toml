@@ -19,10 +19,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.carolina-receive]
-verify_jwt = false
+verify_jwt = true
 
 [functions.carolina-harvest]
-verify_jwt = false
+verify_jwt = true
 
 [functions.carolina-detect-trends]
 verify_jwt = false
@@ -31,25 +31,25 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.admin-get-settings]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-save-settings]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-get-knowledge]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-save-knowledge]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-get-learning]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-save-learning]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-get-chats]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-create-chat]
-verify_jwt = false
+verify_jwt = true
