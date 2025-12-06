@@ -1,14 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Admin law hash - this is the SHA-256 hash of "Ayomide1."
-// In production, store this in environment variables
-const ADMIN_LAW_HASH = "a8f5f167f44f4964e6c998dee827110c"; // placeholder - will be properly hashed
+// Verify admin law using bcrypt comparison
+async function verifyAdminLaw(input: string): Promise<boolean> {
+  const hash = Deno.env.get('ADMIN_LAW_HASH');
+  if (!hash) {
+    console.error("ADMIN_LAW_HASH environment variable not set");
+    return false;
+  }
+  try {
+    return await bcrypt.compare(input, hash);
+  } catch (error) {
+    console.error("bcrypt compare error:", error);
+    return false;
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -67,19 +79,11 @@ serve(async (req) => {
 
     const { command, data, adminLawOverride } = await req.json();
 
-    // Verify admin law if override is provided
+    // Verify admin law if override is provided (uses bcrypt)
     if (adminLawOverride) {
-      // Hash the provided override and compare
-      const encoder = new TextEncoder();
-      const dataBytes = encoder.encode(adminLawOverride);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const isValid = await verifyAdminLaw(adminLawOverride);
       
-      // Store the expected hash in environment variable in production
-      const expectedHash = Deno.env.get('ADMIN_LAW_HASH') || ADMIN_LAW_HASH;
-      
-      if (hashHex !== expectedHash) {
+      if (!isValid) {
         console.error("Invalid admin law override attempt");
         await supabase.from('activity_log').insert({
           action: 'Invalid admin law override attempt',
