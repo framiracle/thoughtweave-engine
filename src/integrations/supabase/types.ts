@@ -188,6 +188,44 @@ export type Database = {
         }
         Relationships: []
       }
+      carolina_intent_map: {
+        Row: {
+          created_at: string | null
+          curiosity_level: number | null
+          emotional_weight: number | null
+          id: string
+          intent: string
+          message: string | null
+          message_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          curiosity_level?: number | null
+          emotional_weight?: number | null
+          id?: string
+          intent: string
+          message?: string | null
+          message_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          curiosity_level?: number | null
+          emotional_weight?: number | null
+          id?: string
+          intent?: string
+          message?: string | null
+          message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carolina_intent_map_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "carolina_memory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       carolina_knowledge: {
         Row: {
           details: string
@@ -206,6 +244,87 @@ export type Database = {
           domain?: string
           id?: string
           last_updated?: string
+        }
+        Relationships: []
+      }
+      carolina_learning: {
+        Row: {
+          id: string
+          last_update: string | null
+          mastery_level: number | null
+          topic: string
+        }
+        Insert: {
+          id?: string
+          last_update?: string | null
+          mastery_level?: number | null
+          topic: string
+        }
+        Update: {
+          id?: string
+          last_update?: string | null
+          mastery_level?: number | null
+          topic?: string
+        }
+        Relationships: []
+      }
+      carolina_memory: {
+        Row: {
+          created_at: string | null
+          emotion: string | null
+          id: string
+          message: string
+          response: string | null
+          role: string | null
+          sentiment: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          emotion?: string | null
+          id?: string
+          message: string
+          response?: string | null
+          role?: string | null
+          sentiment?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          emotion?: string | null
+          id?: string
+          message?: string
+          response?: string | null
+          role?: string | null
+          sentiment?: string | null
+        }
+        Relationships: []
+      }
+      carolina_research: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: number | null
+          status: string | null
+          task_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: number | null
+          status?: string | null
+          task_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: number | null
+          status?: string | null
+          task_name?: string
         }
         Relationships: []
       }
@@ -296,6 +415,33 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          id: string
+          message: string
+          severity: string | null
+          source: string | null
+          stack_trace: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          id?: string
+          message: string
+          severity?: string | null
+          source?: string | null
+          stack_trace?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          id?: string
+          message?: string
+          severity?: string | null
+          source?: string | null
+          stack_trace?: string | null
+          timestamp?: string | null
+        }
+        Relationships: []
+      }
       interaction_logs: {
         Row: {
           ai_response: string
@@ -359,6 +505,30 @@ export type Database = {
           title?: string
           updated_at?: string | null
           url?: string | null
+        }
+        Relationships: []
+      }
+      lab_progress: {
+        Row: {
+          completion_percentage: number | null
+          id: string
+          last_updated: string | null
+          module_name: string
+          status: string | null
+        }
+        Insert: {
+          completion_percentage?: number | null
+          id?: string
+          last_updated?: string | null
+          module_name: string
+          status?: string | null
+        }
+        Update: {
+          completion_percentage?: number | null
+          id?: string
+          last_updated?: string | null
+          module_name?: string
+          status?: string | null
         }
         Relationships: []
       }
