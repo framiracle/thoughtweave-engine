@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ChatSidebar from "@/components/ChatSidebar";
 import ChatPanel from "@/components/ChatPanel";
 import StatusSidebar from "@/components/StatusSidebar";
+import { useChatSessions } from "@/hooks/useChatSessions";
 import { Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -11,10 +12,21 @@ const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
-  const [currentChatId, setCurrentChatId] = useState<string>();
+
+  const {
+    sessions,
+    currentSessionId,
+    messages,
+    loading: sessionsLoading,
+    createSession,
+    updateSession,
+    deleteSession,
+    addMessage,
+    selectSession,
+  } = useChatSessions();
 
   useEffect(() => {
     checkUser();
@@ -37,7 +49,7 @@ const Index = () => {
     if (session?.user) {
       await checkAdminStatus(session.user.id);
     }
-    setLoading(false);
+    setAuthLoading(false);
   };
 
   const checkAdminStatus = async (userId: string) => {
@@ -55,13 +67,21 @@ const Index = () => {
     navigate("/auth");
   };
 
-  const handleNewChat = () => {
-    setCurrentChatId(undefined);
-    // This will trigger a re-render of ChatPanel
-    window.location.reload();
+  const handleNewChat = async () => {
+    await createSession();
   };
 
-  if (loading) {
+  const handleRenameSession = async (sessionId: string, title: string) => {
+    await updateSession(sessionId, title);
+  };
+
+  const handleUpdateSessionTitle = async (title: string, emoji: string) => {
+    if (currentSessionId) {
+      await updateSession(currentSessionId, title, emoji);
+    }
+  };
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3">
@@ -101,12 +121,21 @@ const Index = () => {
         collapsed={leftCollapsed}
         onToggle={() => setLeftCollapsed(!leftCollapsed)}
         onNewChat={handleNewChat}
-        currentChatId={currentChatId}
-        onSelectChat={setCurrentChatId}
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onSelectSession={selectSession}
+        onDeleteSession={deleteSession}
+        onRenameSession={handleRenameSession}
       />
 
       {/* Main Chat Area */}
-      <ChatPanel onNewMessage={() => {}} />
+      <ChatPanel
+        messages={messages}
+        loading={sessionsLoading}
+        sessionId={currentSessionId}
+        onAddMessage={addMessage}
+        onUpdateSessionTitle={handleUpdateSessionTitle}
+      />
 
       {/* Right Sidebar - AI Status */}
       <StatusSidebar
