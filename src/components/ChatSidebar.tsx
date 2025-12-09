@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { 
   Plus, 
   MessageSquare, 
@@ -12,49 +12,37 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  Pencil,
+  Check,
+  X
 } from "lucide-react";
-import { toast } from "sonner";
-
-interface ChatHistory {
-  id: string;
-  title: string;
-  created_at: string;
-}
+import { ChatSession } from "@/hooks/useChatSessions";
 
 interface ChatSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   onNewChat: () => void;
-  currentChatId?: string;
-  onSelectChat?: (chatId: string) => void;
+  sessions: ChatSession[];
+  currentSessionId?: string | null;
+  onSelectSession?: (sessionId: string) => void;
+  onDeleteSession?: (sessionId: string) => void;
+  onRenameSession?: (sessionId: string, title: string) => void;
 }
 
-const ChatSidebar = ({ collapsed, onToggle, onNewChat, currentChatId, onSelectChat }: ChatSidebarProps) => {
+const ChatSidebar = ({ 
+  collapsed, 
+  onToggle, 
+  onNewChat, 
+  sessions,
+  currentSessionId, 
+  onSelectSession,
+  onDeleteSession,
+  onRenameSession
+}: ChatSidebarProps) => {
   const navigate = useNavigate();
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
-
-  useEffect(() => {
-    loadChatHistory();
-  }, []);
-
-  const loadChatHistory = async () => {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('id, content, created_at')
-      .eq('role', 'user')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (data) {
-      const uniqueChats = data.map((msg, index) => ({
-        id: msg.id,
-        title: msg.content.slice(0, 30) + (msg.content.length > 30 ? '...' : ''),
-        created_at: msg.created_at
-      }));
-      setChatHistory(uniqueChats);
-    }
-  };
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   const menuItems = [
     { icon: Brain, label: "Dashboard", path: "/dashboard" },
@@ -62,6 +50,24 @@ const ChatSidebar = ({ collapsed, onToggle, onNewChat, currentChatId, onSelectCh
     { icon: TrendingUp, label: "Trends", path: "/trends" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
+
+  const handleStartEdit = (session: ChatSession) => {
+    setEditingId(session.id);
+    setEditTitle(session.title);
+  };
+
+  const handleSaveEdit = (sessionId: string) => {
+    if (editTitle.trim() && onRenameSession) {
+      onRenameSession(sessionId, editTitle.trim());
+    }
+    setEditingId(null);
+    setEditTitle("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditTitle("");
+  };
 
   return (
     <div 
@@ -100,20 +106,73 @@ const ChatSidebar = ({ collapsed, onToggle, onNewChat, currentChatId, onSelectCh
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-1">
           {!collapsed && <p className="text-xs text-muted-foreground px-2 py-2">Recent Chats</p>}
-          {chatHistory.map((chat) => (
-            <Button
-              key={chat.id}
-              variant="ghost"
-              className={`w-full justify-start gap-2 text-left h-auto py-2 ${
-                collapsed ? "px-2" : ""
-              } ${currentChatId === chat.id ? "bg-secondary" : ""}`}
-              onClick={() => onSelectChat?.(chat.id)}
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              className={`group relative flex items-center gap-2 rounded-lg transition-colors ${
+                currentSessionId === session.id ? "bg-secondary" : "hover:bg-secondary/50"
+              }`}
             >
-              <MessageSquare className="w-4 h-4 shrink-0" />
-              {!collapsed && (
-                <span className="truncate text-sm">{chat.title}</span>
+              {editingId === session.id ? (
+                <div className="flex items-center gap-1 w-full p-2">
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="h-7 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveEdit(session.id);
+                      if (e.key === 'Escape') handleCancelEdit();
+                    }}
+                  />
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleSaveEdit(session.id)}>
+                    <Check className="w-3 h-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleCancelEdit}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    className={`flex-1 justify-start gap-2 text-left h-auto py-2 ${collapsed ? "px-2" : ""}`}
+                    onClick={() => onSelectSession?.(session.id)}
+                  >
+                    <span className="shrink-0">{session.emoji || '💬'}</span>
+                    {!collapsed && (
+                      <span className="truncate text-sm">{session.title}</span>
+                    )}
+                  </Button>
+                  {!collapsed && (
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartEdit(session);
+                        }}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteSession?.(session.id);
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
-            </Button>
+            </div>
           ))}
         </div>
       </ScrollArea>

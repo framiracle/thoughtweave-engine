@@ -369,6 +369,7 @@ export type Database = {
           domains: Json | null
           id: string
           role: string
+          session_id: string | null
         }
         Insert: {
           calculations?: Json | null
@@ -377,6 +378,7 @@ export type Database = {
           domains?: Json | null
           id?: string
           role: string
+          session_id?: string | null
         }
         Update: {
           calculations?: Json | null
@@ -385,6 +387,39 @@ export type Database = {
           domains?: Json | null
           id?: string
           role?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
