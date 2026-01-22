@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Battery, TrendingUp, Activity, Settings, FlaskConical, FileText, Home } from "lucide-react";
-import { toast } from "sonner";
+import { Brain, TrendingUp, Settings, FlaskConical, Home } from "lucide-react";
+import CoreControls from "@/components/CoreControls";
+import { useCore } from "@/core/CoreContext";
 
 interface AIGrowth {
   knowledge_level: number;
@@ -14,6 +15,7 @@ interface AIGrowth {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { version, schemaVersion, emotionalState, memory } = useCore();
   const [aiGrowth, setAiGrowth] = useState<AIGrowth>({
     knowledge_level: 12,
     evolution_tier: 'Bronze',
@@ -78,6 +80,10 @@ export default function Dashboard() {
     return 'from-red-500 to-orange-500';
   };
 
+  // Calculate dominant emotion
+  const dominantEmotion = Object.entries(emotionalState)
+    .sort(([, a], [, b]) => b - a)[0];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
       {/* Top Bar */}
@@ -89,7 +95,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Carolina AI</h1>
-              <p className="text-xs text-muted-foreground">Dashboard Overview</p>
+              <p className="text-xs text-muted-foreground">v{version} • Schema v{schemaVersion}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -129,86 +135,78 @@ export default function Dashboard() {
                 <div className="text-xs text-muted-foreground">Learning Rate</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-emerald-500">+3.7%</div>
-                <div className="text-xs text-muted-foreground">Today's Growth</div>
+                <div className="text-2xl font-bold text-emerald-500">{Object.keys(memory).length}</div>
+                <div className="text-xs text-muted-foreground">Core Memories</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-cyan-500">Stable</div>
-                <div className="text-xs text-muted-foreground">Emotional Status</div>
+                <div className="text-2xl font-bold text-cyan-500">
+                  {dominantEmotion ? dominantEmotion[0] : 'Neutral'}
+                </div>
+                <div className="text-xs text-muted-foreground">Dominant Emotion</div>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/admin")}>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                <Brain className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">{stats.totalKnowledge}</div>
-                <div className="text-xs text-muted-foreground">Neural Health</div>
-              </div>
-            </div>
-          </Card>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Stats Grid */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/admin")}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <Brain className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">{stats.totalKnowledge}</div>
+                    <div className="text-xs text-muted-foreground">Knowledge Nodes</div>
+                  </div>
+                </div>
+              </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/admin")}>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-secondary" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">{stats.totalLogs}</div>
-                <div className="text-xs text-muted-foreground">Growth Metrics</div>
-              </div>
-            </div>
-          </Card>
+              <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/admin")}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-secondary" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">{stats.totalLogs}</div>
+                    <div className="text-xs text-muted-foreground">Interaction Logs</div>
+                  </div>
+                </div>
+              </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/knowledge-lab")}>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center">
-                <FlaskConical className="w-6 h-6 text-accent" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">{stats.labExperiments}</div>
-                <div className="text-xs text-muted-foreground">Labs</div>
-              </div>
-            </div>
-          </Card>
+              <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/knowledge-lab")}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center">
+                    <FlaskConical className="w-6 h-6 text-accent" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">{stats.labExperiments}</div>
+                    <div className="text-xs text-muted-foreground">Lab Experiments</div>
+                  </div>
+                </div>
+              </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/trends")}>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-500" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">Active</div>
-                <div className="text-xs text-muted-foreground">Trends</div>
-              </div>
+              <Card className="p-6 bg-card/50 backdrop-blur hover:bg-card/70 transition-all cursor-pointer" onClick={() => navigate("/trends")}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">{stats.totalMemories}</div>
+                    <div className="text-xs text-muted-foreground">Memory Entries</div>
+                  </div>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </div>
+
+          {/* Core Controls Sidebar */}
+          <div>
+            <CoreControls />
+          </div>
         </div>
-
-        {/* Quick Actions */}
-        <Card className="p-6 bg-card/50 backdrop-blur">
-          <h3 className="text-lg font-bold text-foreground mb-4">Quick Actions</h3>
-          <div className="flex gap-3 flex-wrap">
-            <Button variant="outline" className="gap-2">
-              <Activity className="w-4 h-4" />
-              Reboot AI
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <Settings className="w-4 h-4" />
-              Patch Core
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <FileText className="w-4 h-4" />
-              Export Log
-            </Button>
-          </div>
-        </Card>
       </div>
     </div>
   );

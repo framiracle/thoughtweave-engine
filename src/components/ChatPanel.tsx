@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Copy, RotateCcw, Sparkles, Loader2 } from "lucide-react";
+import { Send, Bot, User, Copy, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ChatMessage } from "@/hooks/useChatSessions";
+import { useCore } from "@/core/CoreContext";
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -21,6 +22,7 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasAutoTitled = useRef(false);
+  const { updateMemory, updateEmotion, memory } = useCore();
 
   useEffect(() => {
     hasAutoTitled.current = false;
@@ -41,6 +43,18 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
     }
   };
 
+  // Detect emotion from user text (silent, non-verbal)
+  const detectEmotion = (text: string) => {
+    const lowerText = text.toLowerCase();
+    if (/\b(thank|thanks|grateful|appreciate)\b/.test(lowerText)) updateEmotion("trust", 1);
+    if (/\b(love|heart|care)\b/.test(lowerText)) updateEmotion("love", 1);
+    if (/\b(happy|joy|great|awesome|excited)\b/.test(lowerText)) updateEmotion("joy", 1);
+    if (/\b(sad|down|depressed|lonely)\b/.test(lowerText)) updateEmotion("sadness", 1);
+    if (/\b(angry|mad|frustrated|annoyed)\b/.test(lowerText)) updateEmotion("frustration", 1);
+    if (/\b(help|confused|lost|question)\b/.test(lowerText)) updateEmotion("seeking", 1);
+    if (/\b(worry|anxious|stress|nervous)\b/.test(lowerText)) updateEmotion("anxiety", 1);
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading || !sessionId) return;
 
@@ -52,6 +66,14 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
 
     try {
       await onAddMessage("user", userMessage);
+
+      // Update core memory with conversation context
+      updateMemory("last_user_message", userMessage);
+      updateMemory("last_interaction_at", Date.now());
+      updateMemory("conversation_count", (memory.conversation_count ?? 0) + 1);
+      
+      // Silent emotion detection
+      detectEmotion(userMessage);
 
       if (messages.length === 0 && !hasAutoTitled.current && onUpdateSessionTitle) {
         hasAutoTitled.current = true;
@@ -70,7 +92,12 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
       });
 
       if (error) throw error;
-      await onAddMessage("assistant", data.response || "I'm thinking...");
+      
+      const responseText = data.response || "I'm thinking...";
+      await onAddMessage("assistant", responseText);
+      
+      // Store last response in core memory
+      updateMemory("last_response", responseText);
     } catch (error) {
       console.error('Error:', error);
       toast.error("Failed to send message");
