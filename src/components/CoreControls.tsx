@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCore } from "@/core/CoreContext";
@@ -11,7 +11,8 @@ import {
   Download, 
   Zap, 
   RefreshCw,
-  Info
+  Info,
+  Upload
 } from "lucide-react";
 
 type ConfirmAction = "soft" | "hard" | "clear" | null;
@@ -22,7 +23,8 @@ export default function CoreControls() {
     hardReboot, 
     clearCache, 
     patchCore, 
-    exportCore, 
+    exportCore,
+    importCore,
     version, 
     lastPatched,
     schemaVersion,
@@ -31,6 +33,8 @@ export default function CoreControls() {
   } = useCore();
 
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleConfirm = () => {
     switch (confirmAction) {
@@ -58,6 +62,45 @@ export default function CoreControls() {
   const handleExport = () => {
     exportCore();
     toast.success("Core exported as JSON.");
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith('.json')) {
+      toast.error("Please select a valid JSON file.");
+      return;
+    }
+
+    // Validate file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+      toast.error("File too large. Maximum size is 1MB.");
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const success = await importCore(file);
+      if (success) {
+        toast.success("Core imported successfully! Carolina's state has been restored.");
+      } else {
+        toast.error("Failed to import core. The file may be corrupted or invalid.");
+      }
+    } catch (error) {
+      toast.error("Failed to import core. Please check the file format.");
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const getConfirmConfig = () => {
@@ -175,15 +218,38 @@ export default function CoreControls() {
             </Button>
           </div>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleExport}
-            className="w-full gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export Core
-          </Button>
+          {/* Import/Export Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExport}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export Core
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleImportClick}
+              disabled={isImporting}
+              className="gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              {isImporting ? "Importing..." : "Import Core"}
+            </Button>
+          </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </CardContent>
       </Card>
 

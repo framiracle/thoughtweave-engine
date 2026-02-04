@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Brain, TrendingUp, Settings, FlaskConical, Home } from "lucide-react";
 import CoreControls from "@/components/CoreControls";
+import EmotionTracker from "@/components/EmotionTracker";
 import { useCore } from "@/core/CoreContext";
 
 interface AIGrowth {
@@ -15,7 +16,7 @@ interface AIGrowth {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { version, schemaVersion, emotionalState, memory } = useCore();
+  const { version, schemaVersion, emotionalState, memory, snapshotEmotions } = useCore();
   const [aiGrowth, setAiGrowth] = useState<AIGrowth>({
     knowledge_level: 12,
     evolution_tier: 'Bronze',
@@ -31,6 +32,16 @@ export default function Dashboard() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Snapshot emotions periodically when there are emotions to track
+  useEffect(() => {
+    if (Object.keys(emotionalState).length > 0) {
+      const interval = setInterval(() => {
+        snapshotEmotions();
+      }, 60000); // Snapshot every minute if emotions exist
+      return () => clearInterval(interval);
+    }
+  }, [emotionalState, snapshotEmotions]);
 
   const loadData = async () => {
     // Load AI growth
@@ -200,6 +211,9 @@ export default function Dashboard() {
                 </div>
               </Card>
             </div>
+
+            {/* Emotion Tracker Panel */}
+            <EmotionTracker />
           </div>
 
           {/* Core Controls Sidebar */}
