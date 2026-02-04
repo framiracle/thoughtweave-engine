@@ -16,9 +16,30 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Verify user is authenticated
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Only return sessions belonging to the authenticated user
     const { data, error } = await supabase
       .from('chat_sessions')
       .select('*')
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
       .limit(50);
 
@@ -27,7 +48,7 @@ serve(async (req) => {
       throw error;
     }
 
-    console.log('Sessions fetched:', data?.length || 0);
+    console.log('Sessions fetched for user:', user.id, 'count:', data?.length || 0);
 
     return new Response(JSON.stringify(data || []), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -25,10 +25,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.carolina-detect-trends]
-verify_jwt = false
+verify_jwt = true
 
 [functions.carolina-generate-predictive]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-get-settings]
 verify_jwt = true
@@ -55,16 +55,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.session-create]
-verify_jwt = false
+verify_jwt = true
 
 [functions.session-list]
-verify_jwt = false
+verify_jwt = true
 
 [functions.session-messages]
-verify_jwt = false
+verify_jwt = true
 
 [functions.session-update]
-verify_jwt = false
+verify_jwt = true
 
 [functions.session-delete]
-verify_jwt = false
+verify_jwt = true

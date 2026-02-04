@@ -370,6 +370,7 @@ export type Database = {
           id: string
           role: string
           session_id: string | null
+          user_id: string | null
         }
         Insert: {
           calculations?: Json | null
@@ -379,6 +380,7 @@ export type Database = {
           id?: string
           role: string
           session_id?: string | null
+          user_id?: string | null
         }
         Update: {
           calculations?: Json | null
@@ -388,6 +390,7 @@ export type Database = {
           id?: string
           role?: string
           session_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -406,6 +409,7 @@ export type Database = {
           id: string
           title: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -413,6 +417,7 @@ export type Database = {
           id?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -420,6 +425,7 @@ export type Database = {
           id?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -707,6 +713,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          endpoint: string | null
+          id: string
+          identifier: string
+          timestamp: string
+        }
+        Insert: {
+          endpoint?: string | null
+          id?: string
+          identifier: string
+          timestamp?: string
+        }
+        Update: {
+          endpoint?: string | null
+          id?: string
+          identifier?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       reflection_log: {
         Row: {
           correction: string | null
@@ -825,6 +852,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

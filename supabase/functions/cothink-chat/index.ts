@@ -1,8 +1,48 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Input validation schema
+const ChatSchema = z.object({
+  message: z.string().min(1, 'Message cannot be empty').max(5000, 'Message too long (max 5000 characters)'),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().max(5000)
+  })).max(50, 'History too long (max 50 messages)').optional().default([])
+});
+
+// Rate limiting helper
+const checkRateLimit = async (
+  supabase: any,
+  identifier: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number }> => {
+  const windowStart = new Date(Date.now() - windowMs);
+  
+  const { count } = await supabase
+    .from('rate_limits')
+    .select('*', { count: 'exact', head: true })
+    .eq('identifier', identifier)
+    .gte('timestamp', windowStart.toISOString());
+  
+  const requestCount = count || 0;
+  
+  if (requestCount >= maxRequests) {
+    return { allowed: false, remaining: 0 };
+  }
+  
+  await supabase.from('rate_limits').insert({
+    identifier,
+    endpoint: 'cothink-chat',
+    timestamp: new Date().toISOString()
+  });
+  
+  return { allowed: true, remaining: maxRequests - requestCount - 1 };
 };
 
 const DOMAIN_WEIGHTS = {
@@ -26,13 +66,50 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { message, history = [] } = await req.json();
+    // Check request size limit (1MB)
+    const contentLength = parseInt(req.headers.get('content-length') || '0');
+    if (contentLength > 1048576) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large (max 1MB)' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = ChatSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { message, history } = validationResult.data;
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Rate limiting: 20 requests per minute per IP
+    const identifier = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    const rateLimit = await checkRateLimit(supabase, identifier, 20, 60000);
+    
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please try again in a minute.', 
+          retry_after: 60 
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Detect domains in user message
     const detectedDomains = detectDomains(message);
