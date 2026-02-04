@@ -4,7 +4,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ADMIN_SECRET = "Ayomide1.";
+// Get admin secret from environment (never hardcode secrets!)
+const getAdminSecret = (): string => {
+  const secret = Deno.env.get('ADMIN_LAW_SECRET');
+  if (!secret) {
+    throw new Error('ADMIN_LAW_SECRET not configured');
+  }
+  return secret;
+};
 
 // Convert hash to hex
 function toHex(buffer: ArrayBuffer): string {
@@ -15,6 +22,7 @@ function toHex(buffer: ArrayBuffer): string {
 
 // Generate admin hash
 async function getAdminHash(): Promise<string> {
+  const ADMIN_SECRET = getAdminSecret();
   const msgBuffer = new TextEncoder().encode(ADMIN_SECRET);
   const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
   return toHex(hashBuffer);

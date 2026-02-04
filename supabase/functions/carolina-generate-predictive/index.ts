@@ -1,9 +1,46 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Input validation schema
+const PredictiveSchema = z.object({
+  modality: z.enum(['text', 'story', 'code', 'tutorial', 'analysis']).default('text'),
+  trend_topic: z.string().max(200, 'Trend topic too long').optional()
+});
+
+// Rate limiting helper
+const checkRateLimit = async (
+  supabase: any,
+  identifier: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number }> => {
+  const windowStart = new Date(Date.now() - windowMs);
+  
+  const { count } = await supabase
+    .from('rate_limits')
+    .select('*', { count: 'exact', head: true })
+    .eq('identifier', identifier)
+    .gte('timestamp', windowStart.toISOString());
+  
+  const requestCount = count || 0;
+  
+  if (requestCount >= maxRequests) {
+    return { allowed: false, remaining: 0 };
+  }
+  
+  await supabase.from('rate_limits').insert({
+    identifier,
+    endpoint: 'carolina-generate-predictive',
+    timestamp: new Date().toISOString()
+  });
+  
+  return { allowed: true, remaining: maxRequests - requestCount - 1 };
 };
 
 serve(async (req) => {
@@ -17,7 +54,68 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { modality = 'text', trend_topic } = await req.json();
+    // Verify user is authenticated (admin only for AI generation)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user is admin
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (!roleData) {
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting: 5 requests per hour for admins
+    const rateLimit = await checkRateLimit(supabase, user.id, 5, 3600000);
+    
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please try again later.', 
+          retry_after: 3600 
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input
+    const body = await req.json();
+    const validationResult = PredictiveSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { modality, trend_topic } = validationResult.data;
 
     console.log('Generating predictive content:', modality, trend_topic);
 
