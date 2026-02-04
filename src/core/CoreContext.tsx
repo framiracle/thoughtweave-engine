@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { CoreState, CoreActions, CoreContextType, Migration } from "./types";
+import type { CoreState, CoreActions, CoreContextType, Migration, EmotionSnapshot } from "./types";
 
 const STORAGE_KEY = "carolina_olive_core";
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 const defaultCore: CoreState = {
   schemaVersion: CURRENT_SCHEMA_VERSION,
   version: "1.0.0",
   memory: {},
   emotionalState: {},
+  emotionalHistory: [],
   lastPatched: null,
 };
 
@@ -18,6 +19,11 @@ const migrations: Record<number, Migration> = {
     ...defaultCore,
     ...core,
     schemaVersion: 1,
+  }),
+  2: (core) => ({
+    ...core,
+    schemaVersion: 2,
+    emotionalHistory: core.emotionalHistory || [],
   }),
 };
 
@@ -40,6 +46,7 @@ const validateCore = (core: CoreState): CoreState => {
   if (typeof core.version !== "string") return defaultCore;
   if (typeof core.memory !== "object" || core.memory === null) core.memory = {};
   if (typeof core.emotionalState !== "object" || core.emotionalState === null) core.emotionalState = {};
+  if (!Array.isArray(core.emotionalHistory)) core.emotionalHistory = [];
   if (core.lastPatched && typeof core.lastPatched !== "string") {
     core.lastPatched = null;
   }
@@ -119,6 +126,28 @@ export const CoreProvider = ({ children }: { children: React.ReactNode }) => {
     URL.revokeObjectURL(url);
   };
 
+  const importCore = async (file: File): Promise<boolean> => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      
+      // Validate basic structure
+      if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('Invalid core file format');
+      }
+      
+      // Migrate and validate the imported core
+      const migrated = migrateCore(parsed);
+      const validated = validateCore(migrated);
+      
+      setCore(validated);
+      return true;
+    } catch (error) {
+      console.error('Failed to import core:', error);
+      return false;
+    }
+  };
+
   const updateMemory = (key: string, value: any) => {
     safeSetCore((prev) => ({
       ...prev,
@@ -139,6 +168,24 @@ export const CoreProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   };
 
+  // Snapshot current emotional state for history tracking
+  const snapshotEmotions = () => {
+    if (Object.keys(core.emotionalState).length === 0) return;
+    
+    const snapshot: EmotionSnapshot = {
+      timestamp: new Date().toISOString(),
+      emotions: { ...core.emotionalState },
+    };
+    
+    safeSetCore((prev) => ({
+      ...prev,
+      emotionalHistory: [
+        ...prev.emotionalHistory.slice(-99), // Keep last 100 snapshots
+        snapshot,
+      ],
+    }));
+  };
+
   return (
     <CoreContext.Provider
       value={{
@@ -148,8 +195,10 @@ export const CoreProvider = ({ children }: { children: React.ReactNode }) => {
         clearCache,
         patchCore,
         exportCore,
+        importCore,
         updateMemory,
         updateEmotion,
+        snapshotEmotions,
       }}
     >
       {children}

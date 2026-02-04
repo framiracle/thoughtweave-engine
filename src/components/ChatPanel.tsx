@@ -22,7 +22,7 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasAutoTitled = useRef(false);
-  const { updateMemory, updateEmotion, memory } = useCore();
+  const { updateMemory, updateEmotion, snapshotEmotions, memory, emotionalState, version, schemaVersion } = useCore();
 
   useEffect(() => {
     hasAutoTitled.current = false;
@@ -53,6 +53,9 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
     if (/\b(angry|mad|frustrated|annoyed)\b/.test(lowerText)) updateEmotion("frustration", 1);
     if (/\b(help|confused|lost|question)\b/.test(lowerText)) updateEmotion("seeking", 1);
     if (/\b(worry|anxious|stress|nervous)\b/.test(lowerText)) updateEmotion("anxiety", 1);
+    if (/\b(curious|wonder|interesting)\b/.test(lowerText)) updateEmotion("curiosity", 1);
+    if (/\b(hope|hopeful|optimistic)\b/.test(lowerText)) updateEmotion("hope", 1);
+    if (/\b(calm|peace|relax)\b/.test(lowerText)) updateEmotion("calm", 1);
   };
 
   const handleSend = async () => {
@@ -87,8 +90,23 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
         onUpdateSessionTitle(words.length > 30 ? words.slice(0, 30) + '...' : words, emoji);
       }
 
+      // Build core context to send to edge function
+      const coreContext = {
+        version,
+        schemaVersion,
+        memory: {
+          conversation_count: memory.conversation_count ?? 0,
+          last_interaction_at: memory.last_interaction_at,
+        },
+        emotionalState,
+      };
+
       const { data, error } = await supabase.functions.invoke('cothink-chat', {
-        body: { message: userMessage, history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })) }
+        body: { 
+          message: userMessage, 
+          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+          coreContext 
+        }
       });
 
       if (error) throw error;
@@ -98,6 +116,11 @@ const ChatPanel = ({ messages, loading, sessionId, onAddMessage, onUpdateSession
       
       // Store last response in core memory
       updateMemory("last_response", responseText);
+      
+      // Snapshot emotional state after meaningful interaction
+      if (messages.length > 0 && messages.length % 5 === 0) {
+        snapshotEmotions();
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error("Failed to send message");

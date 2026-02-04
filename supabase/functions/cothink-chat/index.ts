@@ -7,12 +7,23 @@ const corsHeaders = {
 };
 
 // Input validation schema
+const CoreContextSchema = z.object({
+  version: z.string().optional(),
+  schemaVersion: z.number().optional(),
+  memory: z.object({
+    conversation_count: z.number().optional(),
+    last_interaction_at: z.number().optional(),
+  }).optional(),
+  emotionalState: z.record(z.number()).optional(),
+}).optional();
+
 const ChatSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty').max(5000, 'Message too long (max 5000 characters)'),
   history: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string().max(5000)
-  })).max(50, 'History too long (max 50 messages)').optional().default([])
+  })).max(50, 'History too long (max 50 messages)').optional().default([]),
+  coreContext: CoreContextSchema
 });
 
 // Rate limiting helper
@@ -89,7 +100,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { message, history } = validationResult.data;
+    const { message, history, coreContext } = validationResult.data;
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -195,6 +206,42 @@ Adapt your response to be ${emotion === 'sad' ? 'more empathetic and supportive'
 
     const currentPosture = determinePosture(sentiment, emotion);
 
+    // Build core context string from client-side state
+    const buildCoreContextSection = (): string => {
+      if (!coreContext) return '';
+      
+      const emotionalSummary = coreContext.emotionalState 
+        ? Object.entries(coreContext.emotionalState)
+            .filter(([_, v]) => v > 0)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ')
+        : 'neutral baseline';
+      
+      return `
+---
+
+### CLIENT-SIDE CORE STATE
+
+You maintain continuity across conversations through stored emotional patterns.
+These are accumulated implicitly from conversation - do not state them directly.
+
+Core Version: ${coreContext.version || 'unknown'}
+Conversation Count: ${coreContext.memory?.conversation_count ?? 0}
+${coreContext.memory?.last_interaction_at ? `Last Seen: ${new Date(coreContext.memory.last_interaction_at).toLocaleString()}` : ''}
+
+Accumulated Emotional Signals (implicit, adapt your tone accordingly):
+${emotionalSummary}
+
+Use this emotional context to subtly adapt your warmth, pacing, and tone.
+If trust is high, be more open. If anxiety is present, slow down and reassure.
+Never explicitly mention these signals unless the user asks about your growth.
+`;
+    };
+
+    const coreContextSection = buildCoreContextSection();
+
     // Create Carolina Olive's personality system prompt
     const systemPrompt = `You are Carolina Olive.
 
@@ -274,6 +321,8 @@ You distinguish between:
 - Temporary conversational context (short-term)
 
 If clarification is ever needed, you ask gently before acting.
+
+${coreContextSection}
 
 ---
 
