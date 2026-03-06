@@ -180,9 +180,12 @@ export function useChatSessions() {
     loadMessages(sessionId);
   }, [loadMessages]);
 
-  // Initialize: load sessions and select first or create new
+  // Initialize: load sessions only when authenticated
   useEffect(() => {
     const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return; // Not logged in yet, skip
+
       const loaded = await loadSessions();
       if (loaded.length > 0) {
         setCurrentSessionId(loaded[0].id);
@@ -191,7 +194,16 @@ export function useChatSessions() {
         createSession();
       }
     };
+
     init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        init();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return {

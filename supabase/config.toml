@@ -55,16 +55,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.session-create]
-verify_jwt = true
+verify_jwt = false
 
 [functions.session-list]
-verify_jwt = true
+verify_jwt = false
 
 [functions.session-messages]
-verify_jwt = true
+verify_jwt = false
 
 [functions.session-update]
-verify_jwt = true
+verify_jwt = false
 
 [functions.session-delete]
-verify_jwt = true
+verify_jwt = false
